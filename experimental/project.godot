@@ -11,6 +11,11 @@ config_version=5
 [application]
 
 config/name="Experimental"
-run/main_scene="uid://cgkot2351yxi3"
+run/main_scene="uid://qhv2re27q01p"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=1800
+window/size/viewport_height=1200
