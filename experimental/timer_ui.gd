@@ -1,61 +1,55 @@
 extends Node
 
-# Time limit and remaining time in seconds
-var max_time := 60.0
-var time_left := 60.0
-var shake_timer = 0.0
-var original_position := Vector2.ZERO  # Store the default UI position
+@export var max_time: float = 60.0  # total countdown in seconds
 
-@onready var thermometer = $CanvasLayer/ThermometerBar
-@onready var timer_label = $CanvasLayer/ThermometerBar/TimerLabel
+var time_left: float
+var original_position: Vector2
 
-func _ready():
-	original_position = thermometer.position  # Capture initial (top-right) position
+@onready var bar: TextureProgressBar = $CanvasLayer/ThermometerBar
+@onready var timer_label: Label       = $CanvasLayer/ThermometerBar/TimerLabel
 
-func _process(delta):
-	# print("Time:", time_left, "Fill:", thermometer.value)
-	
-	if time_left > 0:
-		time_left -= delta
-		if time_left <= 0:
-			time_left = 0
+func _ready() -> void:
+	# 1) Enable per-frame _process() calls
+	set_process(true)
+
+	# 2) Init timer and record original bar position
+	time_left = max_time
+	original_position = bar.position
+
+	# 3) Configure bar: full-range + no snapping
+	bar.min_value = 0.0
+	bar.max_value = max_time
+	bar.step      = 0.0
+
+	# 4) Sync UI immediately
+	_update_ui()
+
+func _process(delta: float) -> void:
+	if time_left > 0.0:
+		time_left = max(time_left - delta, 0.0)
+		if time_left == 0.0:
 			end_game()
-		
-		# Calculate how "hot" the thermometer should be
-		var fill_ratio = 1.0 - (time_left / max_time)
-		thermometer.value = fill_ratio * thermometer.max_value
-		
-		# Round remaining time to 2 decimal places
-		timer_label.text = "%.2f" % time_left
-		
-	# Color change based on heat
-	var heat_ratio = (max_time - time_left) / max_time
-	if heat_ratio < 0.7:
-		thermometer.tint_progress = Color(1, 0, 0)
-	elif heat_ratio < 0.9:
-		thermometer.tint_progress = Color(0.8, 0, 0)
-	else:
-		thermometer.tint_progress = Color(0.6, 0, 0)
-		
-	# Animation based on heat
-	var shake_ratio = thermometer.value / thermometer.max_value
+	_update_ui()
+	_update_shake()
 
-	if shake_ratio >= 0.7:
-		shake_timer += delta
-		var shake_strength = 1.0
-		
-		if shake_ratio >= 0.9:
-			shake_strength = 2.5
-			
-		var offset = Vector2(
-			randf_range(-shake_strength, shake_strength),
-			randf_range(-shake_strength, shake_strength)
+func _update_ui() -> void:
+	# Fill from 0→max_time
+	bar.value = max_time - time_left
+	timer_label.text = "%.2f" % time_left
+
+func _update_shake() -> void:
+	var ratio: float = bar.value / max_time
+	if ratio >= 0.7:
+		# Python-style inline if … else for GDScript (no '?:')
+		var strength: float = 2.5 if ratio >= 0.9 else 1.0
+		bar.position = original_position + Vector2(
+			randf_range(-strength, strength),
+			randf_range(-strength, strength)
 		)
-		thermometer.position = original_position + offset
 	else:
-		thermometer.position = original_position  # Reset to top-right corner
-	
-func end_game():
-	print("Time's up!")
+		bar.position = original_position
+
+func end_game() -> void:
+	print("Time’s up!")
 	get_tree().paused = true
-	# Switch scene to game over menu
+	# e.g. get_tree().change_scene_to_file("res://GameOver.tscn")
