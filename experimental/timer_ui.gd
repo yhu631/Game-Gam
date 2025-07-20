@@ -6,7 +6,7 @@ var time_left: float
 var original_position: Vector2
 
 @onready var bar: TextureProgressBar = $CanvasLayer/ThermometerBar
-@onready var timer_label: Label       = $CanvasLayer/ThermometerBar/TimerLabel
+@onready var time_label: Label      = $CanvasLayer/ThermometerBar/TimeLabel
 
 func _ready() -> void:
 	# 1) Enable per-frame _process() calls
@@ -29,13 +29,23 @@ func _process(delta: float) -> void:
 		time_left = max(time_left - delta, 0.0)
 		if time_left == 0.0:
 			end_game()
+	
 	_update_ui()
 	_update_shake()
 
 func _update_ui() -> void:
 	# Fill from 0→max_time
 	bar.value = max_time - time_left
-	timer_label.text = "%.2f" % time_left
+	time_label.text = "%.2f" % time_left
+	
+	# Color change based on heat
+	var heat_ratio = (max_time - time_left) / max_time
+	if heat_ratio < 0.7:
+		bar.tint_progress = Color(1, 0, 0)
+	elif heat_ratio < 0.9:
+		bar.tint_progress = Color(0.8, 0, 0)
+	else:
+		bar.tint_progress = Color(0.6, 0, 0)
 
 func _update_shake() -> void:
 	var ratio: float = bar.value / max_time
